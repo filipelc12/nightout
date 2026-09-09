@@ -1,4 +1,4 @@
-package com.filipelc12.nightout;
+package com.nightout;
 
 import java.time.LocalDate;
 import java.time.ZonedDateTime;
@@ -7,7 +7,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
-import com.filipelc12.nightout.WindowsThemeManager.Theme;
+import com.nightout.WindowsThemeManager.Theme;
 
 /**
  * Verifica periodicamente se o horario atual esta antes do nascer do sol, entre

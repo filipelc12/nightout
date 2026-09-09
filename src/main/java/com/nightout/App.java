@@ -1,9 +1,9 @@
-package com.filipelc12.nightout;
+package com.nightout;
 
 import javax.swing.*;
 import java.awt.*;
 
-import com.filipelc12.nightout.WindowsThemeManager.Theme;
+import com.nightout.WindowsThemeManager.Theme;
 
 /** Ponto de entrada: fica residente na bandeja do Windows trocando o tema pelo sol da cidade. */
 public final class App {

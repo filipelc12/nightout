@@ -1,4 +1,4 @@
-package com.filipelc12.nightout;
+package com.nightout;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
@@ -6,7 +6,7 @@ import java.awt.RenderingHints;
 import java.awt.geom.Ellipse2D;
 import java.awt.image.BufferedImage;
 
-import com.filipelc12.nightout.WindowsThemeManager.Theme;
+import com.nightout.WindowsThemeManager.Theme;
 
 /** Desenha o icone da bandeja em runtime: sol (tema claro) ou lua (tema escuro). */
 public final class TrayIconFactory {

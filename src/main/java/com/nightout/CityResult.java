@@ -1,4 +1,4 @@
-package com.filipelc12.nightout;
+package com.nightout;
 
 /** Resultado de busca de cidade retornado pelo servico de geocoding. */
 public record CityResult(String name, String admin1, String country, double lat, double lon) {

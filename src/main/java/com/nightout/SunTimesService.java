@@ -1,4 +1,4 @@
-package com.filipelc12.nightout;
+package com.nightout;
 
 import java.io.IOException;
 import java.net.URI;
