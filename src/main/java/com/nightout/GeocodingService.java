@@ -48,11 +48,11 @@ public final class GeocodingService {
         for (Object item : results) {
             Map<String, Object> entry = (Map<String, Object>) item;
             String name = (String) entry.get("name");
-            String admin1 = (String) entry.get("admin1");
+            String region = (String) entry.get("admin1");
             String country = (String) entry.get("country");
             double lat = ((Number) entry.get("latitude")).doubleValue();
             double lon = ((Number) entry.get("longitude")).doubleValue();
-            cities.add(new CityResult(name, admin1, country, lat, lon));
+            cities.add(new CityResult(name, region, country, lat, lon));
         }
         return cities;
     }

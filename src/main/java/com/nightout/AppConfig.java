@@ -18,7 +18,7 @@ public final class AppConfig {
     private static final Path CONFIG_FILE = CONFIG_DIR.resolve("config.properties");
 
     public String cityName;
-    public String admin1;
+    public String region;
     public String country;
     public Double lat;
     public Double lon;
@@ -41,7 +41,7 @@ public final class AppConfig {
             return config;
         }
         config.cityName = props.getProperty("city.name");
-        config.admin1 = props.getProperty("city.admin1");
+        config.region = props.getProperty("city.region");
         config.country = props.getProperty("city.country");
         String latStr = props.getProperty("city.lat");
         String lonStr = props.getProperty("city.lon");
@@ -60,7 +60,7 @@ public final class AppConfig {
         }
         Properties props = new Properties();
         if (cityName != null) props.setProperty("city.name", cityName);
-        if (admin1 != null) props.setProperty("city.admin1", admin1);
+        if (region != null) props.setProperty("city.region", region);
         if (country != null) props.setProperty("city.country", country);
         if (lat != null) props.setProperty("city.lat", String.valueOf(lat));
         if (lon != null) props.setProperty("city.lon", String.valueOf(lon));
@@ -75,7 +75,7 @@ public final class AppConfig {
     public String displayName() {
         if (cityName == null) return "(nenhuma cidade selecionada)";
         StringBuilder sb = new StringBuilder(cityName);
-        if (admin1 != null && !admin1.isBlank()) sb.append(", ").append(admin1);
+        if (region != null && !region.isBlank()) sb.append(", ").append(region);
         if (country != null && !country.isBlank()) sb.append(", ").append(country);
         return sb.toString();
     }

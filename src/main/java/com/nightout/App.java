@@ -90,7 +90,7 @@ public final class App {
 
     private static void applyCity(CityResult city) {
         config.cityName = city.name();
-        config.admin1 = city.admin1();
+        config.region = city.region();
         config.country = city.country();
         config.lat = city.lat();
         config.lon = city.lon();
