@@ -12,9 +12,15 @@ import com.nightout.WindowsThemeManager.Theme;
 /**
  * Verifica periodicamente se o horario atual esta antes do nascer do sol, entre
  * nascer e por do sol, ou depois do por do sol, e ajusta o tema do Windows:
- *   - agora >= por do sol       -> tema escuro
- *   - nascer do sol <= agora    -> tema claro (dia)
- *   - antes do nascer do sol    -> tema escuro (ainda de noite)
+ *   - agora >= por do sol de hoje    -> tema escuro
+ *   - nascer do sol <= agora < por   -> tema claro (dia)
+ *   - antes do nascer do sol de hoje -> tema escuro (ainda de noite)
+ *
+ * Para log/tooltip, tambem calcula o PROXIMO nascer e por do sol relevantes
+ * (olhando pra frente, nunca um horario que ja passou):
+ *   - antes do nascer de hoje  -> nascer de hoje, por do sol de hoje
+ *   - depois do nascer de hoje, ainda de dia -> por do sol de hoje, nascer de amanha
+ *   - depois do por do sol de hoje (de noite) -> nascer de amanha, por do sol de amanha
  */
 public final class ThemeScheduler {
 
@@ -29,8 +35,11 @@ public final class ThemeScheduler {
         return t;
     });
 
-    private SunTimes cachedSunTimes;
-    private LocalDate cachedDate;
+    private SunTimes todaySunTimes;
+    private LocalDate todayCachedDate;
+
+    private SunTimes tomorrowSunTimes;
+    private LocalDate tomorrowCachedDate;
 
     public ThemeScheduler(AppConfig config, Consumer<Theme> onThemeApplied) {
         this.config = config;
@@ -65,20 +74,61 @@ public final class ThemeScheduler {
         }
         ZonedDateTime now = ZonedDateTime.now();
         LocalDate today = now.toLocalDate();
-        if (cachedSunTimes == null || !today.equals(cachedDate)) {
-            cachedSunTimes = sunTimesService.fetchToday(config.lat, config.lon);
-            cachedDate = today;
-            Logger.log(String.format("Horarios de hoje (%s): nascer do sol %s, por do sol %s",
-                    config.displayName(), cachedSunTimes.sunrise(), cachedSunTimes.sunset()));
+        ensureFetched(today);
+
+        boolean isDaytime = now.isAfter(todaySunTimes.sunrise()) && now.isBefore(todaySunTimes.sunset());
+        Theme desired = isDaytime ? Theme.LIGHT : Theme.DARK;
+
+        ZonedDateTime nextSunrise;
+        ZonedDateTime nextSunset;
+        if (now.isBefore(todaySunTimes.sunrise())) {
+            // Ainda nao amanheceu hoje: os dois proximos eventos sao hoje.
+            nextSunrise = todaySunTimes.sunrise();
+            nextSunset = todaySunTimes.sunset();
+        } else if (now.isBefore(todaySunTimes.sunset())) {
+            // Ja amanheceu, ainda nao anoiteceu: proximo por do sol e hoje,
+            // proximo nascer do sol so amanha.
+            ensureTomorrowFetched(today.plusDays(1));
+            nextSunset = todaySunTimes.sunset();
+            nextSunrise = tomorrowSunTimes != null ? tomorrowSunTimes.sunrise() : todaySunTimes.sunrise();
+        } else {
+            // Ja anoiteceu hoje: os dois proximos eventos sao amanha.
+            ensureTomorrowFetched(today.plusDays(1));
+            nextSunrise = tomorrowSunTimes != null ? tomorrowSunTimes.sunrise() : todaySunTimes.sunrise();
+            nextSunset = tomorrowSunTimes != null ? tomorrowSunTimes.sunset() : todaySunTimes.sunset();
         }
 
-        boolean isDaytime = now.isAfter(cachedSunTimes.sunrise()) && now.isBefore(cachedSunTimes.sunset());
-        Theme desired = isDaytime ? Theme.LIGHT : Theme.DARK;
+        Logger.log(String.format("%s - proximo nascer do sol: %s, proximo por do sol: %s (tema: %s)",
+                config.displayName(), nextSunrise, nextSunset, desired));
 
         Theme current = themeManager.getCurrentTheme();
         if (current != desired) {
             themeManager.setTheme(desired);
         }
         onThemeApplied.accept(desired);
+    }
+
+    private void ensureFetched(LocalDate today) throws Exception {
+        if (todaySunTimes == null || !today.equals(todayCachedDate)) {
+            todaySunTimes = sunTimesService.fetch(config.lat, config.lon, today);
+            todayCachedDate = today;
+            // O cache de amanha so vale enquanto "hoje" nao mudar.
+            tomorrowSunTimes = null;
+            tomorrowCachedDate = null;
+        }
+    }
+
+    private void ensureTomorrowFetched(LocalDate tomorrow) {
+        if (tomorrowSunTimes != null && tomorrow.equals(tomorrowCachedDate)) {
+            return;
+        }
+        try {
+            tomorrowSunTimes = sunTimesService.fetch(config.lat, config.lon, tomorrow);
+            tomorrowCachedDate = tomorrow;
+        } catch (Exception e) {
+            Logger.log("Falha ao buscar nascer/por do sol de amanha: " + e);
+            tomorrowSunTimes = null;
+            tomorrowCachedDate = null;
+        }
     }
 }
