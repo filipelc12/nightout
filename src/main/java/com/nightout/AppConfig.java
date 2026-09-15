@@ -23,9 +23,16 @@ public final class AppConfig {
     public Double lat;
     public Double lon;
     public int intervalMinutes = 5;
+    public String wallpaperDayPath;
+    public String wallpaperNightPath;
 
     public boolean isCityConfigured() {
         return lat != null && lon != null;
+    }
+
+    public boolean isWallpaperConfigured() {
+        return (wallpaperDayPath != null && !wallpaperDayPath.isBlank())
+                || (wallpaperNightPath != null && !wallpaperNightPath.isBlank());
     }
 
     public static AppConfig load() {
@@ -48,6 +55,8 @@ public final class AppConfig {
         if (latStr != null) config.lat = Double.valueOf(latStr);
         if (lonStr != null) config.lon = Double.valueOf(lonStr);
         config.intervalMinutes = Integer.parseInt(props.getProperty("check.interval.minutes", "5"));
+        config.wallpaperDayPath = props.getProperty("wallpaper.day.path");
+        config.wallpaperNightPath = props.getProperty("wallpaper.night.path");
         return config;
     }
 
@@ -65,6 +74,8 @@ public final class AppConfig {
         if (lat != null) props.setProperty("city.lat", String.valueOf(lat));
         if (lon != null) props.setProperty("city.lon", String.valueOf(lon));
         props.setProperty("check.interval.minutes", String.valueOf(intervalMinutes));
+        if (wallpaperDayPath != null) props.setProperty("wallpaper.day.path", wallpaperDayPath);
+        if (wallpaperNightPath != null) props.setProperty("wallpaper.night.path", wallpaperNightPath);
         try (OutputStream out = Files.newOutputStream(CONFIG_FILE)) {
             props.store(out, "Configuracao NightOut");
         } catch (IOException e) {

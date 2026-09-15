@@ -1,4 +1,6 @@
-package com.nightout;
+package com.nightout.client;
+
+import com.nightout.SunTimes;
 
 import java.io.IOException;
 import java.net.URI;

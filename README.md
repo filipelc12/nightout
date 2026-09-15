@@ -36,6 +36,10 @@ clique com o botao direito no icone para:
 
 - **Verificar agora** - forca uma checagem imediata do tema
 - **Selecionar cidade...** - troca a cidade usada para calcular o sol
+- **Configurar papeis de parede...** - define os arquivos de imagem usados
+  como wallpaper no tema claro (dia) e no tema escuro (noite); ao trocar de
+  tema, o wallpaper correspondente e aplicado automaticamente. Deixar um dos
+  campos em branco desativa a troca de wallpaper para aquele tema.
 - **Sair**
 
 A configuracao fica salva em `%APPDATA%\NightOut\config.properties` e o log
@@ -48,3 +52,6 @@ em `%APPDATA%\NightOut\nightout.log`.
 - **Tema do Windows**: leitura/escrita do registro
   `HKCU\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize`
   (chaves `AppsUseLightTheme` e `SystemUsesLightTheme`) via `reg.exe`
+- **Wallpaper**: troca via API nativa `SystemParametersInfo`
+  (`SPI_SETDESKWALLPAPER`), chamada por um script PowerShell (mesmo padrao
+  sem dependencia nativa usado na troca de tema)
