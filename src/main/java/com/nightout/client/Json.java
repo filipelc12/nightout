@@ -1,4 +1,4 @@
-package com.nightout;
+package com.nightout.client;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;

@@ -9,6 +9,8 @@ import java.awt.event.MouseEvent;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.nightout.client.GeocodingService;
+
 /**
  * Janela simples para o usuario buscar e escolher a cidade usada para calcular
  * o nascer/por do sol. Retorna a cidade escolhida (ou null se cancelado).

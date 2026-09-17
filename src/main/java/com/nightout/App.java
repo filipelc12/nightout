@@ -73,6 +73,16 @@ public final class App {
         });
         popup.add(changeCityItem);
 
+        MenuItem wallpaperItem = new MenuItem("Configurar papeis de parede...");
+        wallpaperItem.addActionListener(e -> {
+            boolean saved = WallpaperSettingsDialog.showAndEdit(config);
+            if (saved) {
+                scheduler.invalidateWallpaperCache();
+                scheduler.checkNow();
+            }
+        });
+        popup.add(wallpaperItem);
+
         popup.addSeparator();
         MenuItem exitItem = new MenuItem("Sair");
         exitItem.addActionListener(e -> {

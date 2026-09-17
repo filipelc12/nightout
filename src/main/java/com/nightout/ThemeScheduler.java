@@ -8,6 +8,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import com.nightout.WindowsThemeManager.Theme;
+import com.nightout.client.SunTimesService;
 
 /**
  * Verifica periodicamente se o horario atual esta antes do nascer do sol, entre
@@ -27,7 +28,10 @@ public final class ThemeScheduler {
     private final AppConfig config;
     private final SunTimesService sunTimesService = new SunTimesService();
     private final WindowsThemeManager themeManager = new WindowsThemeManager();
+    private final WallpaperManager wallpaperManager = new WallpaperManager();
     private final Consumer<Theme> onThemeApplied;
+
+    private Theme lastWallpaperTheme;
 
     private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor(r -> {
         Thread t = new Thread(r, "nightout-scheduler");
@@ -105,7 +109,35 @@ public final class ThemeScheduler {
         if (current != desired) {
             themeManager.setTheme(desired);
         }
+        applyWallpaper(desired);
         onThemeApplied.accept(desired);
+    }
+
+    /**
+     * Troca o papel de parede para o configurado no tema atual (dia/noite),
+     * se o usuario tiver configurado um caminho para ele. So reaplica quando
+     * o tema desejado muda (ou apos invalidateWallpaperCache), evitando
+     * chamar o PowerShell a cada checagem sem necessidade.
+     */
+    private void applyWallpaper(Theme desired) {
+        if (desired == lastWallpaperTheme) {
+            return;
+        }
+        String path = desired == Theme.LIGHT ? config.wallpaperDayPath : config.wallpaperNightPath;
+        if (path == null || path.isBlank()) {
+            return;
+        }
+        try {
+            wallpaperManager.setWallpaper(java.nio.file.Path.of(path));
+            lastWallpaperTheme = desired;
+        } catch (Exception e) {
+            Logger.log("Erro ao aplicar wallpaper: " + e);
+        }
+    }
+
+    /** Forca a reaplicacao do wallpaper na proxima checagem (ex.: apos o usuario mudar os caminhos). */
+    public void invalidateWallpaperCache() {
+        lastWallpaperTheme = null;
     }
 
     private void ensureFetched(LocalDate today) throws Exception {
