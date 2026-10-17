@@ -72,6 +72,13 @@ public final class ThemeScheduler {
     }
 
     private void check() throws Exception {
+        Theme manual = config.themeMode.manualTheme();
+        if (manual != null) {
+            // Modo manual: tema fixo, nao depende de cidade nem do sol.
+            Logger.log("Modo manual ativo (tema: " + manual + ")");
+            applyTheme(manual);
+            return;
+        }
         if (!config.isCityConfigured()) {
             Logger.log("Nenhuma cidade configurada ainda; pulando checagem.");
             return;
@@ -105,6 +112,10 @@ public final class ThemeScheduler {
         Logger.log(String.format("%s - proximo nascer do sol: %s, proximo por do sol: %s (tema: %s)",
                 config.displayName(), nextSunrise, nextSunset, chosen));
 
+        applyTheme(chosen);
+    }
+
+    private void applyTheme(Theme chosen) throws Exception {
         Theme current = themeManager.getCurrentTheme();
         if (current != chosen) {
             themeManager.setTheme(chosen);

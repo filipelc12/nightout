@@ -8,7 +8,7 @@ import java.nio.file.Path;
 import java.util.Properties;
 
 /**
- * Configuracao persistida do usuario: cidade escolhida e intervalo de checagem.
+ * Configuracao persistida do usuario: cidade escolhida, intervalo de checagem e modo do tema.
  * Guardada em %APPDATA%\NightOut\config.properties.
  */
 public final class AppConfig {
@@ -25,6 +25,7 @@ public final class AppConfig {
     public int intervalMinutes = 5;
     public String wallpaperDayPath;
     public String wallpaperNightPath;
+    public ThemeMode themeMode = ThemeMode.AUTO;
 
     /*
     A configuracao da cidade é basicamente latitude e longitude.
@@ -67,6 +68,7 @@ public final class AppConfig {
         config.intervalMinutes = Integer.parseInt(props.getProperty("check.interval.minutes", "5"));
         config.wallpaperDayPath = props.getProperty("wallpaper.day.path");
         config.wallpaperNightPath = props.getProperty("wallpaper.night.path");
+        config.themeMode = ThemeMode.parse(props.getProperty("theme.mode"));
         return config;
     }
 
@@ -86,6 +88,7 @@ public final class AppConfig {
         props.setProperty("check.interval.minutes", String.valueOf(intervalMinutes));
         if (wallpaperDayPath != null) props.setProperty("wallpaper.day.path", wallpaperDayPath);
         if (wallpaperNightPath != null) props.setProperty("wallpaper.night.path", wallpaperNightPath);
+        props.setProperty("theme.mode", themeMode.name());
         try (OutputStream out = Files.newOutputStream(CONFIG_FILE)) {
             props.store(out, "Configuracao NightOut");
         } catch (IOException e) {

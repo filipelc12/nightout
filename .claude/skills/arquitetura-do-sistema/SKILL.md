@@ -14,9 +14,10 @@ nascer/por do sol da cidade configurada.
 | Classe | Papel |
 |---|---|
 | `App` | Ponto de entrada. Carrega config, pede cidade na 1a execucao, monta o icone/menu da bandeja e liga o `ThemeScheduler`. |
-| `AppConfig` | Config persistida em `%APPDATA%\NightOut\config.properties` (cidade, lat/lon, intervalo, caminhos de wallpaper). Campos publicos + `load()`/`save()`. |
+| `AppConfig` | Config persistida em `%APPDATA%\NightOut\config.properties` (cidade, lat/lon, intervalo, caminhos de wallpaper, modo do tema). Campos publicos + `load()`/`save()`. |
 | `ThemeScheduler` | Thread unica (`nightout-scheduler`, daemon) que roda `check()` a cada `intervalMinutes`. Decide o tema, aplica tema e wallpaper e avisa a UI via `Consumer<Theme>`. Faz cache do sol de hoje/amanha. |
 | `WindowsThemeManager` | Le/escreve `AppsUseLightTheme`/`SystemUsesLightTheme` via `reg.exe` e faz broadcast `WM_SETTINGCHANGE` via PowerShell. Define o enum `Theme { LIGHT, DARK }`. |
+| `ThemeMode` | Enum `AUTO` / `LIGHT` / `DARK`: automatico pelo sol ou tema fixo (manual). Salvo como `theme.mode`. |
 | `WallpaperManager` | Troca wallpaper com `SystemParametersInfo` chamado por script PowerShell. |
 | `TrayIconFactory` | Desenha o icone (sol/lua) em `BufferedImage`. |
 | `SettingsDialog` | Dialogo Swing de busca/selecao de cidade (busca em `SwingWorker`). |
@@ -32,7 +33,8 @@ nascer/por do sol da cidade configurada.
 1. `App.main` -> checa `SystemTray.isSupported()` -> `SwingUtilities.invokeLater(App::start)`.
 2. `start()` carrega `AppConfig`; sem cidade, abre `SettingsDialog`.
 3. Cria `ThemeScheduler`, monta a bandeja (`criarIconeDaBandeja`) e chama `scheduler.start()`.
-4. A cada ciclo, `ThemeScheduler.check()` busca o sol (com cache), escolhe o tema,
+4. A cada ciclo, `ThemeScheduler.check()`: se o modo for manual, aplica o tema fixo
+   e para por ai; senao busca o sol (com cache), escolhe o tema,
    aplica tema/wallpaper se mudou e chama `App.onThemeApplied`, que atualiza
    icone/tooltip **dentro do EDT** (`SwingUtilities.invokeLater`).
 
@@ -59,7 +61,8 @@ nascer/por do sol da cidade configurada.
   `criarIconeDaBandeja()` so faz `popup.add(criarX())` em ordem. Ex.:
   `criarVerificarAgora()`, `criarSelecionarCidade()`,
   `criarConfigurarPapeisDeParede()`, `criarSair(tray)`. Botao novo = metodo novo
-  no mesmo padrao.
+  no mesmo padrao. Submenus seguem a mesma ideia: `criarMenuTema()` so monta
+  `criarAutomatico()`, `criarClaro()`, `criarEscuro()`.
 - **Idioma**: textos de UI e logs em portugues **sem acento** (padrao atual do
   projeto). Codigo novo pode ter nomes em portugues (`criar...`, `iconeBandeja`);
   ao mexer em codigo existente, siga o idioma do entorno - nao renomeie em massa
