@@ -34,6 +34,11 @@ Na primeira execucao, uma janela pede pra buscar e escolher a cidade (usa a
 API publica de geocoding do Open-Meteo). Depois disso o app roda na bandeja;
 clique com o botao direito no icone para:
 
+- **Tema** - escolhe como o tema e definido:
+  - **Automatico (pelo sol)** - comportamento padrao, troca no nascer/por do sol
+  - **Claro (manual)** / **Escuro (manual)** - fixa o tema escolhido (e o
+    wallpaper correspondente) ate voltar para o automatico. A escolha fica
+    salva e vale tambem depois de reiniciar o app.
 - **Verificar agora** - forca uma checagem imediata do tema
 - **Selecionar cidade...** - troca a cidade usada para calcular o sol
 - **Configurar papeis de parede...** - define os arquivos de imagem usados
