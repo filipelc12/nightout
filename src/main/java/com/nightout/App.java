@@ -8,10 +8,12 @@ import com.nightout.WindowsThemeManager.Theme;
 /** Ponto de entrada: fica residente na bandeja do Windows trocando o tema pelo sol da cidade. */
 public final class App {
 
-    private static TrayIcon trayIcon;
+    private static TrayIcon iconeBandeja;
     private static MenuItem statusItem;
     private static AppConfig config;
     private static ThemeScheduler scheduler;
+
+    private static String LABEL_VERIFICAR_AGORA = "Verificar agora";
 
     public static void main(String[] args) {
         if (!SystemTray.isSupported()) {
@@ -39,7 +41,7 @@ public final class App {
         scheduler = new ThemeScheduler(config, App::onThemeApplied);
 
         try {
-            setupTrayIcon();
+            criarIconeDaBandeja();
         } catch (AWTException e) {
             Logger.log("Falha ao criar icone na bandeja: " + e);
             return;
@@ -48,22 +50,38 @@ public final class App {
         scheduler.start();
     }
 
-    private static void setupTrayIcon() throws AWTException {
+    private static void criarIconeDaBandeja() throws AWTException {
         SystemTray tray = SystemTray.getSystemTray();
 
         PopupMenu popup = new PopupMenu();
+        popup.add(criarStatusCidade());
+        popup.addSeparator();
+        popup.add(criarVerificarAgora());
+        popup.add(criarSelecionarCidade());
+        popup.add(criarConfigurarPapeisDeParede());
+        popup.addSeparator();
+        popup.add(criarSair(tray));
 
+        iconeBandeja = new TrayIcon(TrayIconFactory.create(Theme.LIGHT), "NightOut", popup);
+        iconeBandeja.setImageAutoSize(true);
+        tray.add(iconeBandeja);
+    }
+
+    private static MenuItem criarStatusCidade() {
         statusItem = new MenuItem("Cidade: " + config.displayName());
         statusItem.setEnabled(false);
-        popup.add(statusItem);
-        popup.addSeparator();
+        return statusItem;
+    }
 
-        MenuItem checkNowItem = new MenuItem("Verificar agora");
-        checkNowItem.addActionListener(e -> scheduler.checkNow());
-        popup.add(checkNowItem);
+    private static MenuItem criarVerificarAgora() {
+        MenuItem item = new MenuItem(LABEL_VERIFICAR_AGORA);
+        item.addActionListener(e -> scheduler.checkNow());
+        return item;
+    }
 
-        MenuItem changeCityItem = new MenuItem("Selecionar cidade...");
-        changeCityItem.addActionListener(e -> {
+    private static MenuItem criarSelecionarCidade() {
+        MenuItem item = new MenuItem("Selecionar cidade...");
+        item.addActionListener(e -> {
             CityResult picked = SettingsDialog.showAndSelect(config.displayName());
             if (picked != null) {
                 applyCity(picked);
@@ -71,31 +89,30 @@ public final class App {
                 scheduler.checkNow();
             }
         });
-        popup.add(changeCityItem);
+        return item;
+    }
 
-        MenuItem wallpaperItem = new MenuItem("Configurar papeis de parede...");
-        wallpaperItem.addActionListener(e -> {
+    private static MenuItem criarConfigurarPapeisDeParede() {
+        MenuItem item = new MenuItem("Configurar papeis de parede...");
+        item.addActionListener(e -> {
             boolean saved = WallpaperSettingsDialog.showAndEdit(config);
             if (saved) {
                 scheduler.invalidateWallpaperCache();
                 scheduler.checkNow();
             }
         });
-        popup.add(wallpaperItem);
+        return item;
+    }
 
-        popup.addSeparator();
-        MenuItem exitItem = new MenuItem("Sair");
-        exitItem.addActionListener(e -> {
+    private static MenuItem criarSair(SystemTray tray) {
+        MenuItem item = new MenuItem("Sair");
+        item.addActionListener(e -> {
             Logger.log("Encerrando NightOut.");
             scheduler.stop();
-            tray.remove(trayIcon);
+            tray.remove(iconeBandeja);
             System.exit(0);
         });
-        popup.add(exitItem);
-
-        trayIcon = new TrayIcon(TrayIconFactory.create(Theme.LIGHT), "NightOut", popup);
-        trayIcon.setImageAutoSize(true);
-        tray.add(trayIcon);
+        return item;
     }
 
     private static void applyCity(CityResult city) {
@@ -110,10 +127,10 @@ public final class App {
 
     private static void onThemeApplied(Theme theme) {
         SwingUtilities.invokeLater(() -> {
-            if (trayIcon != null) {
-                trayIcon.setImage(TrayIconFactory.create(theme));
+            if (iconeBandeja != null) {
+                iconeBandeja.setImage(TrayIconFactory.create(theme));
                 String label = theme == Theme.LIGHT ? "Tema claro (dia)" : "Tema escuro (noite)";
-                trayIcon.setToolTip("NightOut - " + config.displayName() + " - " + label);
+                iconeBandeja.setToolTip("NightOut - " + config.displayName() + " - " + label);
             }
         });
     }

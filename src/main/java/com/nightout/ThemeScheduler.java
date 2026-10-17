@@ -81,7 +81,7 @@ public final class ThemeScheduler {
         ensureFetched(today);
 
         boolean isDaytime = now.isAfter(todaySunTimes.sunrise()) && now.isBefore(todaySunTimes.sunset());
-        Theme desired = isDaytime ? Theme.LIGHT : Theme.DARK;
+        Theme chosen = isDaytime ? Theme.LIGHT : Theme.DARK;
 
         ZonedDateTime nextSunrise;
         ZonedDateTime nextSunset;
@@ -103,14 +103,14 @@ public final class ThemeScheduler {
         }
 
         Logger.log(String.format("%s - proximo nascer do sol: %s, proximo por do sol: %s (tema: %s)",
-                config.displayName(), nextSunrise, nextSunset, desired));
+                config.displayName(), nextSunrise, nextSunset, chosen));
 
         Theme current = themeManager.getCurrentTheme();
-        if (current != desired) {
-            themeManager.setTheme(desired);
+        if (current != chosen) {
+            themeManager.setTheme(chosen);
         }
-        applyWallpaper(desired);
-        onThemeApplied.accept(desired);
+        applyWallpaper(chosen);
+        onThemeApplied.accept(chosen);
     }
 
     /**
