@@ -39,7 +39,10 @@ clique com o botao direito no icone para:
   - **Claro (manual)** / **Escuro (manual)** - fixa o tema escolhido (e o
     wallpaper correspondente) ate voltar para o automatico. A escolha fica
     salva e vale tambem depois de reiniciar o app.
-- **Verificar agora** - forca uma checagem imediata do tema
+- **Verificar agora** - forca uma checagem imediata do tema e mostra uma
+  notificacao com o resultado: no tema claro, o horario do proximo por do
+  sol; no tema escuro, o do proximo nascer do sol (no modo manual, avisa que
+  o tema esta fixo)
 - **Selecionar cidade...** - troca a cidade usada para calcular o sol
 - **Configurar papeis de parede...** - define os arquivos de imagem usados
   como wallpaper no tema claro (dia) e no tema escuro (noite); ao trocar de

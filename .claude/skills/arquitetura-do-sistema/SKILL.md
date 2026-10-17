@@ -23,7 +23,7 @@ nascer/por do sol da cidade configurada.
 | `SettingsDialog` | Dialogo Swing de busca/selecao de cidade (busca em `SwingWorker`). |
 | `WallpaperSettingsDialog` | Dialogo Swing para escolher as imagens de dia/noite. |
 | `Logger` | Log simples em `%APPDATA%\NightOut\nightout.log`. |
-| `CityResult`, `SunTimes` | `record`s de dados. |
+| `CityResult`, `SunTimes`, `CheckResult` | `record`s de dados. `CheckResult` e o retorno de uma checagem (tema + proximos nascer/por do sol; horarios `null` no modo manual). |
 | `client/GeocodingService` | API Open-Meteo Geocoding (busca de cidade). |
 | `client/SunTimesService` | API sunrise-sunset.org (nascer/por do sol por data). |
 | `client/Json` | Parser JSON minimo proprio (nao adicionar lib de JSON). |
@@ -43,6 +43,10 @@ nascer/por do sol da cidade configurada.
 - **Threads**: tudo de Swing/AWT no EDT; tudo que e lento (HTTP, `reg.exe`,
   PowerShell) no executor do `ThemeScheduler` ou em `SwingWorker`. Acoes do menu
   que precisam de checagem chamam `scheduler.checkNow()`, nunca `check()` direto.
+  Para mostrar o resultado ao usuario, use `scheduler.checkNow(onResult, onError)`:
+  os callbacks rodam na thread do scheduler, entao volte ao EDT com
+  `SwingUtilities.invokeLater` antes de mexer na UI. Avisos ao usuario usam
+  `TrayIcon.displayMessage` (metodo `notificar` em `App`).
 - **Integracao com o Windows**: sem JNI/JNA. Usar `reg.exe` ou script PowerShell
   via `ProcessBuilder`, seguindo o padrao de `WindowsThemeManager`/`WallpaperManager`.
 - **Chamadas HTTP** ficam no pacote `client`, usando `java.net.http.HttpClient` e `Json`.

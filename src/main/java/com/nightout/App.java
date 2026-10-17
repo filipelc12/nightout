@@ -2,10 +2,17 @@ package com.nightout;
 
 import javax.swing.*;
 import java.awt.*;
+import java.time.LocalDate;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.EnumMap;
 import java.util.Map;
 
 import com.nightout.WindowsThemeManager.Theme;
+
+//TODO: melhorar essa classe, que esta muito grande e com muita responsabilidade.
+//  Talvez separar em classes menores, como TrayIconManager, ThemeMenuManager, etc.
+
 
 /** Ponto de entrada: fica residente na bandeja do Windows trocando o tema pelo sol da cidade. */
 public final class App {
@@ -120,8 +127,51 @@ public final class App {
 
     private static MenuItem criarVerificarAgora() {
         MenuItem item = new MenuItem(LABEL_VERIFICAR_AGORA);
-        item.addActionListener(e -> scheduler.checkNow());
+        item.addActionListener(e -> scheduler.checkNow(
+                resultado -> SwingUtilities.invokeLater(() -> mostrarResultadoDaVerificacao(resultado)),
+                erro -> SwingUtilities.invokeLater(() -> mostrarErroDaVerificacao(erro))));
         return item;
+    }
+
+    private static void mostrarResultadoDaVerificacao(CheckResult resultado) {
+        if (resultado == null) {
+            notificar("Nenhuma cidade configurada.", TrayIcon.MessageType.WARNING);
+        } else if (resultado.isManual()) {
+            String tema = resultado.theme() == Theme.LIGHT ? "claro" : "escuro";
+            notificar("Modo manual: tema " + tema + " fixo.\n"
+                    + "Use Tema > Automatico para voltar a seguir o sol.", TrayIcon.MessageType.INFO);
+        } else if (resultado.theme() == Theme.LIGHT) {
+            notificar("Tema claro (dia).\nO sol se poe " + descreverHorario(resultado.nextSunset()) + ".",
+                    TrayIcon.MessageType.INFO);
+        } else {
+            notificar("Tema escuro (noite).\nO sol nasce " + descreverHorario(resultado.nextSunrise()) + ".",
+                    TrayIcon.MessageType.INFO);
+        }
+    }
+
+    private static void mostrarErroDaVerificacao(Exception erro) {
+        notificar("Nao foi possivel verificar o tema: " + erro.getMessage(), TrayIcon.MessageType.ERROR);
+    }
+
+    /** Ex.: "hoje as 18:37", "amanha as 05:41". */
+    private static String descreverHorario(ZonedDateTime horario) {
+        LocalDate dia = horario.toLocalDate();
+        LocalDate hoje = LocalDate.now();
+        String quando;
+        if (dia.equals(hoje)) {
+            quando = "hoje";
+        } else if (dia.equals(hoje.plusDays(1))) {
+            quando = "amanha";
+        } else {
+            quando = "em " + dia.format(DateTimeFormatter.ofPattern("dd/MM"));
+        }
+        return quando + " as " + horario.format(DateTimeFormatter.ofPattern("HH:mm"));
+    }
+
+    private static void notificar(String mensagem, TrayIcon.MessageType tipo) {
+        if (iconeBandeja != null) {
+            iconeBandeja.displayMessage("NightOut", mensagem, tipo);
+        }
     }
 
     private static MenuItem criarSelecionarCidade() {
