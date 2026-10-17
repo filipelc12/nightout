@@ -26,6 +26,9 @@ public final class AppConfig {
     public String wallpaperDayPath;
     public String wallpaperNightPath;
 
+    /*
+    A configuracao da cidade é basicamente latitude e longitude.
+     */
     public boolean isCityConfigured() {
         return lat != null && lon != null;
     }
@@ -36,6 +39,7 @@ public final class AppConfig {
     }
 
     public static AppConfig load() {
+        // Cria um config e caso nao exista retorna ele vazio
         AppConfig config = new AppConfig();
         if (!Files.exists(CONFIG_FILE)) {
             return config;
@@ -46,7 +50,13 @@ public final class AppConfig {
         } catch (IOException e) {
             Logger.log("Falha ao ler config: " + e.getMessage());
             return config;
-        }
+        }//TODO adicionar mais tipos de excecao em um futuro
+
+        return fromProperties(props);
+    }
+
+    private static AppConfig fromProperties(Properties props) {
+        AppConfig config = new AppConfig();
         config.cityName = props.getProperty("city.name");
         config.region = props.getProperty("city.region");
         config.country = props.getProperty("city.country");
