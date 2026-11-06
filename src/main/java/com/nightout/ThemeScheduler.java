@@ -93,7 +93,7 @@ public final class ThemeScheduler {
             // Modo manual: tema fixo, nao depende de cidade nem do sol.
             Logger.log("Modo manual ativo (tema: " + manual + ")");
             applyTheme(manual);
-            return new CheckResult(manual, null, null);
+            return new CheckResult(manual, null, null, true);
         }
         if (!config.isCityConfigured()) {
             Logger.log("Nenhuma cidade configurada ainda; pulando checagem.");
@@ -117,12 +117,12 @@ public final class ThemeScheduler {
             // proximo nascer do sol so amanha.
             ensureTomorrowFetched(today.plusDays(1));
             nextSunset = todaySunTimes.sunset();
-            nextSunrise = tomorrowSunTimes != null ? tomorrowSunTimes.sunrise() : todaySunTimes.sunrise();
+            nextSunrise = tomorrowSunTimes != null ? tomorrowSunTimes.sunrise() : null;
         } else {
             // Ja anoiteceu hoje: os dois proximos eventos sao amanha.
             ensureTomorrowFetched(today.plusDays(1));
-            nextSunrise = tomorrowSunTimes != null ? tomorrowSunTimes.sunrise() : todaySunTimes.sunrise();
-            nextSunset = tomorrowSunTimes != null ? tomorrowSunTimes.sunset() : todaySunTimes.sunset();
+            nextSunrise = tomorrowSunTimes != null ? tomorrowSunTimes.sunrise() : null;
+            nextSunset = tomorrowSunTimes != null ? tomorrowSunTimes.sunset() : null;
         }
 
         Logger.log(String.format("%s - proximo nascer do sol: %s, proximo por do sol: %s (tema: %s)",

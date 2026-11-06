@@ -148,8 +148,13 @@ public final class App {
             notificar("Tema claro (dia).\nO sol se poe " + descreverHorario(resultado.nextSunset()) + ".",
                     TrayIcon.MessageType.INFO);
         } else {
-            notificar("Tema escuro (noite).\nO sol nasce " + descreverHorario(resultado.nextSunrise()) + ".",
-                    TrayIcon.MessageType.INFO);
+            if (resultado.nextSunrise() == null) {
+                notificar("Tema escuro (noite).\nNao foi possivel obter o proximo nascer do sol.",
+                        TrayIcon.MessageType.WARNING);
+            } else {
+                notificar("Tema escuro (noite).\nO sol nasce " + descreverHorario(resultado.nextSunrise()) + ".",
+                        TrayIcon.MessageType.INFO);
+            }
         }
     }
 
@@ -211,6 +216,7 @@ public final class App {
             return item;
         }
         // reg.exe e lento demais para o EDT: le o estado em segundo plano.
+        item.setEnabled(false);
         CompletableFuture.supplyAsync(() -> {
             try {
                 return startup.isEnabled();
@@ -218,12 +224,20 @@ public final class App {
                 Logger.log("Falha ao ler Iniciar com o Windows: " + e);
                 return false;
             }
-        }).thenAccept(ligado -> SwingUtilities.invokeLater(() -> item.setState(ligado)));
-        item.addItemListener(e -> alternarIniciarComWindows(item, item.getState()));
+        }).thenAccept(ligado -> SwingUtilities.invokeLater(() -> {
+            item.setState(ligado);
+            item.setEnabled(true);
+        }));
+        item.addItemListener(e -> {
+            if (item.isEnabled()) {
+                alternarIniciarComWindows(item, item.getState());
+            }
+        });
         return item;
     }
 
     private static void alternarIniciarComWindows(CheckboxMenuItem item, boolean ligar) {
+        item.setEnabled(false);
         CompletableFuture.runAsync(() -> {
             try {
                 if (ligar) {
@@ -234,13 +248,15 @@ public final class App {
             } catch (Exception e) {
                 throw new CompletionException(e);
             }
-        }).exceptionally(erro -> {
-            Logger.log("Falha ao alterar Iniciar com o Windows: " + erro);
+        }).whenComplete((ignored, erro) -> {
             SwingUtilities.invokeLater(() -> {
-                item.setState(!ligar);
-                notificar("Nao foi possivel alterar o Iniciar com o Windows.", TrayIcon.MessageType.ERROR);
+                item.setState(erro == null ? ligar : !ligar);
+                item.setEnabled(true);
+                if (erro != null) {
+                    Logger.log("Falha ao alterar Iniciar com o Windows: " + erro);
+                    notificar("Nao foi possivel alterar o Iniciar com o Windows.", TrayIcon.MessageType.ERROR);
+                }
             });
-            return null;
         });
     }
 

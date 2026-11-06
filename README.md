@@ -12,6 +12,11 @@ alguns minutos (configuravel) e reaplicando o tema quando necessario.
 
 ## Para quem so quer usar
 
+[**Baixar NightOut para Windows — ZIP portatil**](https://github.com/filipelc12/nightout/releases/download/v1.1.0/NightOut-1.1.0-portatil.zip)
+
+O link baixa diretamente o aplicativo com Java embutido. Extraia o ZIP e abra
+`NightOut\NightOut.exe`.
+
 Baixe a versao portatil (`NightOut-<versao>-portatil.zip`) ou o instalador
 (`NightOut-<versao>.msi`). **Nao precisa ter Java instalado**: o app ja leva
 um runtime Java enxuto embutido. Na versao portatil, descompacte e abra o
