@@ -2,10 +2,19 @@ package com.nightout;
 
 import javax.swing.*;
 import java.awt.*;
+import java.time.LocalDate;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.EnumMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 
 import com.nightout.WindowsThemeManager.Theme;
+
+//TODO: melhorar essa classe, que esta muito grande e com muita responsabilidade.
+//  Talvez separar em classes menores, como TrayIconManager, ThemeMenuManager, etc.
+
 
 /** Ponto de entrada: fica residente na bandeja do Windows trocando o tema pelo sol da cidade. */
 public final class App {
@@ -14,6 +23,7 @@ public final class App {
     private static MenuItem statusItem;
     private static AppConfig config;
     private static ThemeScheduler scheduler;
+    private static final WindowsStartupManager startup = new WindowsStartupManager();
     private static final Map<ThemeMode, CheckboxMenuItem> opcoesDeTema = new EnumMap<>(ThemeMode.class);
 
     private static String LABEL_VERIFICAR_AGORA = "Verificar agora";
@@ -63,6 +73,7 @@ public final class App {
         popup.add(criarVerificarAgora());
         popup.add(criarSelecionarCidade());
         popup.add(criarConfigurarPapeisDeParede());
+        popup.add(criarIniciarComWindows());
         popup.addSeparator();
         popup.add(criarSair(tray));
 
@@ -120,8 +131,56 @@ public final class App {
 
     private static MenuItem criarVerificarAgora() {
         MenuItem item = new MenuItem(LABEL_VERIFICAR_AGORA);
-        item.addActionListener(e -> scheduler.checkNow());
+        item.addActionListener(e -> scheduler.checkNow(
+                resultado -> SwingUtilities.invokeLater(() -> mostrarResultadoDaVerificacao(resultado)),
+                erro -> SwingUtilities.invokeLater(() -> mostrarErroDaVerificacao(erro))));
         return item;
+    }
+
+    private static void mostrarResultadoDaVerificacao(CheckResult resultado) {
+        if (resultado == null) {
+            notificar("Nenhuma cidade configurada.", TrayIcon.MessageType.WARNING);
+        } else if (resultado.isManual()) {
+            String tema = resultado.theme() == Theme.LIGHT ? "claro" : "escuro";
+            notificar("Modo manual: tema " + tema + " fixo.\n"
+                    + "Use Tema > Automatico para voltar a seguir o sol.", TrayIcon.MessageType.INFO);
+        } else if (resultado.theme() == Theme.LIGHT) {
+            notificar("Tema claro (dia).\nO sol se poe " + descreverHorario(resultado.nextSunset()) + ".",
+                    TrayIcon.MessageType.INFO);
+        } else {
+            if (resultado.nextSunrise() == null) {
+                notificar("Tema escuro (noite).\nNao foi possivel obter o proximo nascer do sol.",
+                        TrayIcon.MessageType.WARNING);
+            } else {
+                notificar("Tema escuro (noite).\nO sol nasce " + descreverHorario(resultado.nextSunrise()) + ".",
+                        TrayIcon.MessageType.INFO);
+            }
+        }
+    }
+
+    private static void mostrarErroDaVerificacao(Exception erro) {
+        notificar("Nao foi possivel verificar o tema: " + erro.getMessage(), TrayIcon.MessageType.ERROR);
+    }
+
+    /** Ex.: "hoje as 18:37", "amanha as 05:41". */
+    private static String descreverHorario(ZonedDateTime horario) {
+        LocalDate dia = horario.toLocalDate();
+        LocalDate hoje = LocalDate.now();
+        String quando;
+        if (dia.equals(hoje)) {
+            quando = "hoje";
+        } else if (dia.equals(hoje.plusDays(1))) {
+            quando = "amanha";
+        } else {
+            quando = "em " + dia.format(DateTimeFormatter.ofPattern("dd/MM"));
+        }
+        return quando + " as " + horario.format(DateTimeFormatter.ofPattern("HH:mm"));
+    }
+
+    private static void notificar(String mensagem, TrayIcon.MessageType tipo) {
+        if (iconeBandeja != null) {
+            iconeBandeja.displayMessage("NightOut", mensagem, tipo);
+        }
     }
 
     private static MenuItem criarSelecionarCidade() {
@@ -147,6 +206,58 @@ public final class App {
             }
         });
         return item;
+    }
+
+    private static MenuItem criarIniciarComWindows() {
+        CheckboxMenuItem item = new CheckboxMenuItem("Iniciar com o Windows", false);
+        if (!startup.isAvailable()) {
+            item.setLabel("Iniciar com o Windows (so na versao instalada)");
+            item.setEnabled(false);
+            return item;
+        }
+        // reg.exe e lento demais para o EDT: le o estado em segundo plano.
+        item.setEnabled(false);
+        CompletableFuture.supplyAsync(() -> {
+            try {
+                return startup.isEnabled();
+            } catch (Exception e) {
+                Logger.log("Falha ao ler Iniciar com o Windows: " + e);
+                return false;
+            }
+        }).thenAccept(ligado -> SwingUtilities.invokeLater(() -> {
+            item.setState(ligado);
+            item.setEnabled(true);
+        }));
+        item.addItemListener(e -> {
+            if (item.isEnabled()) {
+                alternarIniciarComWindows(item, item.getState());
+            }
+        });
+        return item;
+    }
+
+    private static void alternarIniciarComWindows(CheckboxMenuItem item, boolean ligar) {
+        item.setEnabled(false);
+        CompletableFuture.runAsync(() -> {
+            try {
+                if (ligar) {
+                    startup.enable();
+                } else {
+                    startup.disable();
+                }
+            } catch (Exception e) {
+                throw new CompletionException(e);
+            }
+        }).whenComplete((ignored, erro) -> {
+            SwingUtilities.invokeLater(() -> {
+                item.setState(erro == null ? ligar : !ligar);
+                item.setEnabled(true);
+                if (erro != null) {
+                    Logger.log("Falha ao alterar Iniciar com o Windows: " + erro);
+                    notificar("Nao foi possivel alterar o Iniciar com o Windows.", TrayIcon.MessageType.ERROR);
+                }
+            });
+        });
     }
 
     private static MenuItem criarSair(SystemTray tray) {

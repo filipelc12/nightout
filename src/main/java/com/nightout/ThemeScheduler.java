@@ -59,6 +59,21 @@ public final class ThemeScheduler {
         executor.submit(this::safeCheck);
     }
 
+    /**
+     * Igual ao {@link #checkNow()}, mas devolve o resultado (ou o erro) para
+     * quem pediu. Os callbacks rodam na thread do scheduler, nao no EDT.
+     */
+    public void checkNow(Consumer<CheckResult> onResult, Consumer<Exception> onError) {
+        executor.submit(() -> {
+            try {
+                onResult.accept(check());
+            } catch (Exception e) {
+                Logger.log("Erro na checagem de tema: " + e);
+                onError.accept(e);
+            }
+        });
+    }
+
     public void stop() {
         executor.shutdownNow();
     }
@@ -71,17 +86,18 @@ public final class ThemeScheduler {
         }
     }
 
-    private void check() throws Exception {
+    /** Faz a checagem e devolve o resultado; {@code null} se ainda nao ha cidade configurada. */
+    private CheckResult check() throws Exception {
         Theme manual = config.themeMode.manualTheme();
         if (manual != null) {
             // Modo manual: tema fixo, nao depende de cidade nem do sol.
             Logger.log("Modo manual ativo (tema: " + manual + ")");
             applyTheme(manual);
-            return;
+            return new CheckResult(manual, null, null, true);
         }
         if (!config.isCityConfigured()) {
             Logger.log("Nenhuma cidade configurada ainda; pulando checagem.");
-            return;
+            return null;
         }
         ZonedDateTime now = ZonedDateTime.now();
         LocalDate today = now.toLocalDate();
@@ -101,18 +117,19 @@ public final class ThemeScheduler {
             // proximo nascer do sol so amanha.
             ensureTomorrowFetched(today.plusDays(1));
             nextSunset = todaySunTimes.sunset();
-            nextSunrise = tomorrowSunTimes != null ? tomorrowSunTimes.sunrise() : todaySunTimes.sunrise();
+            nextSunrise = tomorrowSunTimes != null ? tomorrowSunTimes.sunrise() : null;
         } else {
             // Ja anoiteceu hoje: os dois proximos eventos sao amanha.
             ensureTomorrowFetched(today.plusDays(1));
-            nextSunrise = tomorrowSunTimes != null ? tomorrowSunTimes.sunrise() : todaySunTimes.sunrise();
-            nextSunset = tomorrowSunTimes != null ? tomorrowSunTimes.sunset() : todaySunTimes.sunset();
+            nextSunrise = tomorrowSunTimes != null ? tomorrowSunTimes.sunrise() : null;
+            nextSunset = tomorrowSunTimes != null ? tomorrowSunTimes.sunset() : null;
         }
 
         Logger.log(String.format("%s - proximo nascer do sol: %s, proximo por do sol: %s (tema: %s)",
                 config.displayName(), nextSunrise, nextSunset, chosen));
 
         applyTheme(chosen);
+        return new CheckResult(chosen, nextSunrise, nextSunset);
     }
 
     private void applyTheme(Theme chosen) throws Exception {

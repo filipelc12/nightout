@@ -18,12 +18,13 @@ nascer/por do sol da cidade configurada.
 | `ThemeScheduler` | Thread unica (`nightout-scheduler`, daemon) que roda `check()` a cada `intervalMinutes`. Decide o tema, aplica tema e wallpaper e avisa a UI via `Consumer<Theme>`. Faz cache do sol de hoje/amanha. |
 | `WindowsThemeManager` | Le/escreve `AppsUseLightTheme`/`SystemUsesLightTheme` via `reg.exe` e faz broadcast `WM_SETTINGCHANGE` via PowerShell. Define o enum `Theme { LIGHT, DARK }`. |
 | `ThemeMode` | Enum `AUTO` / `LIGHT` / `DARK`: automatico pelo sol ou tema fixo (manual). Salvo como `theme.mode`. |
+| `WindowsStartupManager` | Liga/desliga o "Iniciar com o Windows" (valor `NightOut` em `HKCU\...\CurrentVersion\Run`) via `reg.exe`. So disponivel no app empacotado: usa a propriedade `jpackage.app-path`. |
 | `WallpaperManager` | Troca wallpaper com `SystemParametersInfo` chamado por script PowerShell. |
 | `TrayIconFactory` | Desenha o icone (sol/lua) em `BufferedImage`. |
 | `SettingsDialog` | Dialogo Swing de busca/selecao de cidade (busca em `SwingWorker`). |
 | `WallpaperSettingsDialog` | Dialogo Swing para escolher as imagens de dia/noite. |
 | `Logger` | Log simples em `%APPDATA%\NightOut\nightout.log`. |
-| `CityResult`, `SunTimes` | `record`s de dados. |
+| `CityResult`, `SunTimes`, `CheckResult` | `record`s de dados. `CheckResult` e o retorno de uma checagem (tema + proximos nascer/por do sol; horarios `null` no modo manual). |
 | `client/GeocodingService` | API Open-Meteo Geocoding (busca de cidade). |
 | `client/SunTimesService` | API sunrise-sunset.org (nascer/por do sol por data). |
 | `client/Json` | Parser JSON minimo proprio (nao adicionar lib de JSON). |
@@ -43,6 +44,10 @@ nascer/por do sol da cidade configurada.
 - **Threads**: tudo de Swing/AWT no EDT; tudo que e lento (HTTP, `reg.exe`,
   PowerShell) no executor do `ThemeScheduler` ou em `SwingWorker`. Acoes do menu
   que precisam de checagem chamam `scheduler.checkNow()`, nunca `check()` direto.
+  Para mostrar o resultado ao usuario, use `scheduler.checkNow(onResult, onError)`:
+  os callbacks rodam na thread do scheduler, entao volte ao EDT com
+  `SwingUtilities.invokeLater` antes de mexer na UI. Avisos ao usuario usam
+  `TrayIcon.displayMessage` (metodo `notificar` em `App`).
 - **Integracao com o Windows**: sem JNI/JNA. Usar `reg.exe` ou script PowerShell
   via `ProcessBuilder`, seguindo o padrao de `WindowsThemeManager`/`WallpaperManager`.
 - **Chamadas HTTP** ficam no pacote `client`, usando `java.net.http.HttpClient` e `Json`.
@@ -80,3 +85,21 @@ java -jar target/nightout.jar
 
 Versao fica em `pom.xml` (`<version>`); o README lista os itens do menu da
 bandeja - atualize-o ao adicionar/remover botao.
+
+## Empacotamento (app sem precisar de Java)
+
+- `packaging/build-installer.ps1` roda `mvn package` + `jpackage` e gera em
+  `target/dist`: o app (`NightOut/NightOut.exe` + runtime), o zip portatil e,
+  se o WiX 3 estiver no PATH, o `.msi` (instalacao por usuario).
+- O runtime e montado pelo jlink so com os modulos da variavel `$modulos` do
+  script. **Se o codigo passar a usar um modulo novo do JDK** (ex.: `java.sql`,
+  `java.logging`), rode `jdeps --print-module-deps target/nightout.jar` e
+  atualize `$modulos`, senao o app empacotado quebra (via `java -jar` funciona,
+  o que esconde o problema).
+- `$upgradeUuid` do script e fixo: nunca altere (e o que faz um `.msi` novo
+  atualizar o anterior).
+- Icone: `packaging/NightOut.ico`, gerado por `packaging/GerarIcone.java`.
+- Teste em Windows limpo: `packaging/testar-na-sandbox.wsb` (Windows Sandbox).
+- Codigo que depende de estar empacotado (ex.: `WindowsStartupManager`) deve
+  checar `System.getProperty("jpackage.app-path")` e degradar com elegancia
+  quando rodar via `java -jar`.

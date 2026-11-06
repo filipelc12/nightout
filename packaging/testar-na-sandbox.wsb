@@ -1,0 +1,20 @@
+<!--
+  Abre a Area Restrita do Windows (Windows Sandbox) - um Windows limpo, sem
+  Java - com a pasta target\dist compartilhada (somente leitura) na area de
+  trabalho. Gere o pacote antes com packaging\build-installer.ps1 e depois de
+  um duplo clique neste arquivo. Ao fechar a Sandbox, tudo e apagado.
+
+  O caminho abaixo e absoluto: ajuste se o projeto estiver em outra pasta.
+-->
+<Configuration>
+  <MappedFolders>
+    <MappedFolder>
+      <HostFolder>C:\projetos\nightout\target\dist</HostFolder>
+      <SandboxFolder>C:\Users\WDAGUtilityAccount\Desktop\NightOut</SandboxFolder>
+      <ReadOnly>true</ReadOnly>
+    </MappedFolder>
+  </MappedFolders>
+  <LogonCommand>
+    <Command>explorer.exe C:\Users\WDAGUtilityAccount\Desktop\NightOut</Command>
+  </LogonCommand>
+</Configuration>
