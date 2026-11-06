@@ -18,6 +18,7 @@ nascer/por do sol da cidade configurada.
 | `ThemeScheduler` | Thread unica (`nightout-scheduler`, daemon) que roda `check()` a cada `intervalMinutes`. Decide o tema, aplica tema e wallpaper e avisa a UI via `Consumer<Theme>`. Faz cache do sol de hoje/amanha. |
 | `WindowsThemeManager` | Le/escreve `AppsUseLightTheme`/`SystemUsesLightTheme` via `reg.exe` e faz broadcast `WM_SETTINGCHANGE` via PowerShell. Define o enum `Theme { LIGHT, DARK }`. |
 | `ThemeMode` | Enum `AUTO` / `LIGHT` / `DARK`: automatico pelo sol ou tema fixo (manual). Salvo como `theme.mode`. |
+| `WindowsStartupManager` | Liga/desliga o "Iniciar com o Windows" (valor `NightOut` em `HKCU\...\CurrentVersion\Run`) via `reg.exe`. So disponivel no app empacotado: usa a propriedade `jpackage.app-path`. |
 | `WallpaperManager` | Troca wallpaper com `SystemParametersInfo` chamado por script PowerShell. |
 | `TrayIconFactory` | Desenha o icone (sol/lua) em `BufferedImage`. |
 | `SettingsDialog` | Dialogo Swing de busca/selecao de cidade (busca em `SwingWorker`). |
@@ -84,3 +85,21 @@ java -jar target/nightout.jar
 
 Versao fica em `pom.xml` (`<version>`); o README lista os itens do menu da
 bandeja - atualize-o ao adicionar/remover botao.
+
+## Empacotamento (app sem precisar de Java)
+
+- `packaging/build-installer.ps1` roda `mvn package` + `jpackage` e gera em
+  `target/dist`: o app (`NightOut/NightOut.exe` + runtime), o zip portatil e,
+  se o WiX 3 estiver no PATH, o `.msi` (instalacao por usuario).
+- O runtime e montado pelo jlink so com os modulos da variavel `$modulos` do
+  script. **Se o codigo passar a usar um modulo novo do JDK** (ex.: `java.sql`,
+  `java.logging`), rode `jdeps --print-module-deps target/nightout.jar` e
+  atualize `$modulos`, senao o app empacotado quebra (via `java -jar` funciona,
+  o que esconde o problema).
+- `$upgradeUuid` do script e fixo: nunca altere (e o que faz um `.msi` novo
+  atualizar o anterior).
+- Icone: `packaging/NightOut.ico`, gerado por `packaging/GerarIcone.java`.
+- Teste em Windows limpo: `packaging/testar-na-sandbox.wsb` (Windows Sandbox).
+- Codigo que depende de estar empacotado (ex.: `WindowsStartupManager`) deve
+  checar `System.getProperty("jpackage.app-path")` e degradar com elegancia
+  quando rodar via `java -jar`.

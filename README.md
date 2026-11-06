@@ -10,7 +10,18 @@ por do sol da cidade configurada.
 O app fica residente na bandeja do Windows, verificando o horario a cada
 alguns minutos (configuravel) e reaplicando o tema quando necessario.
 
-## Requisitos
+## Para quem so quer usar
+
+Baixe a versao portatil (`NightOut-<versao>-portatil.zip`) ou o instalador
+(`NightOut-<versao>.msi`). **Nao precisa ter Java instalado**: o app ja leva
+um runtime Java enxuto embutido. Na versao portatil, descompacte e abra o
+`NightOut.exe`.
+
+Como o executavel nao e assinado digitalmente, na primeira vez o Windows pode
+mostrar "O Windows protegeu o computador": clique em **Mais informacoes ->
+Executar assim mesmo**.
+
+## Requisitos (para desenvolver)
 
 - Java 21 (Microsoft Build of OpenJDK)
 - Maven 3.9+
@@ -48,10 +59,34 @@ clique com o botao direito no icone para:
   como wallpaper no tema claro (dia) e no tema escuro (noite); ao trocar de
   tema, o wallpaper correspondente e aplicado automaticamente. Deixar um dos
   campos em branco desativa a troca de wallpaper para aquele tema.
+- **Iniciar com o Windows** - abre o NightOut automaticamente ao entrar no
+  Windows (so no app empacotado; rodando via `java -jar` fica desabilitado)
 - **Sair**
 
 A configuracao fica salva em `%APPDATA%\NightOut\config.properties` e o log
 em `%APPDATA%\NightOut\nightout.log`.
+
+## Gerar o pacote para distribuicao
+
+```
+powershell -ExecutionPolicy Bypass -File packaging\build-installer.ps1
+```
+
+Usa o `jpackage` do JDK 21 para juntar o jar com um runtime Java enxuto e gera
+em `target\dist`:
+
+- `NightOut\` - o app pronto (`NightOut.exe` + runtime)
+- `NightOut-<versao>-portatil.zip` - o mesmo app zipado
+- `NightOut-<versao>.msi` - instalador por usuario (sem admin), com atalho no
+  Menu Iniciar. So e gerado se o [WiX Toolset 3](https://wixtoolset.org/)
+  estiver no PATH (`winget install WiXToolset.WiXToolset`)
+
+A versao vem do `<version>` do `pom.xml`. O icone e o `packaging\NightOut.ico`,
+gerado por `packaging\GerarIcone.java`.
+
+Para testar num Windows limpo (sem Java), ative a **Area Restrita do Windows**
+(Windows Sandbox) e de um duplo clique em `packaging\testar-na-sandbox.wsb`:
+ela abre com a pasta `target\dist` compartilhada.
 
 ## Como funciona
 
@@ -63,3 +98,7 @@ em `%APPDATA%\NightOut\nightout.log`.
 - **Wallpaper**: troca via API nativa `SystemParametersInfo`
   (`SPI_SETDESKWALLPAPER`), chamada por um script PowerShell (mesmo padrao
   sem dependencia nativa usado na troca de tema)
+- **Iniciar com o Windows**: valor `NightOut` em
+  `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` apontando para o
+  `NightOut.exe` (o mesmo lugar que a aba "Aplicativos de inicializacao" do
+  Windows lista)

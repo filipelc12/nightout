@@ -7,6 +7,8 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.EnumMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 
 import com.nightout.WindowsThemeManager.Theme;
 
@@ -21,6 +23,7 @@ public final class App {
     private static MenuItem statusItem;
     private static AppConfig config;
     private static ThemeScheduler scheduler;
+    private static final WindowsStartupManager startup = new WindowsStartupManager();
     private static final Map<ThemeMode, CheckboxMenuItem> opcoesDeTema = new EnumMap<>(ThemeMode.class);
 
     private static String LABEL_VERIFICAR_AGORA = "Verificar agora";
@@ -70,6 +73,7 @@ public final class App {
         popup.add(criarVerificarAgora());
         popup.add(criarSelecionarCidade());
         popup.add(criarConfigurarPapeisDeParede());
+        popup.add(criarIniciarComWindows());
         popup.addSeparator();
         popup.add(criarSair(tray));
 
@@ -197,6 +201,47 @@ public final class App {
             }
         });
         return item;
+    }
+
+    private static MenuItem criarIniciarComWindows() {
+        CheckboxMenuItem item = new CheckboxMenuItem("Iniciar com o Windows", false);
+        if (!startup.isAvailable()) {
+            item.setLabel("Iniciar com o Windows (so na versao instalada)");
+            item.setEnabled(false);
+            return item;
+        }
+        // reg.exe e lento demais para o EDT: le o estado em segundo plano.
+        CompletableFuture.supplyAsync(() -> {
+            try {
+                return startup.isEnabled();
+            } catch (Exception e) {
+                Logger.log("Falha ao ler Iniciar com o Windows: " + e);
+                return false;
+            }
+        }).thenAccept(ligado -> SwingUtilities.invokeLater(() -> item.setState(ligado)));
+        item.addItemListener(e -> alternarIniciarComWindows(item, item.getState()));
+        return item;
+    }
+
+    private static void alternarIniciarComWindows(CheckboxMenuItem item, boolean ligar) {
+        CompletableFuture.runAsync(() -> {
+            try {
+                if (ligar) {
+                    startup.enable();
+                } else {
+                    startup.disable();
+                }
+            } catch (Exception e) {
+                throw new CompletionException(e);
+            }
+        }).exceptionally(erro -> {
+            Logger.log("Falha ao alterar Iniciar com o Windows: " + erro);
+            SwingUtilities.invokeLater(() -> {
+                item.setState(!ligar);
+                notificar("Nao foi possivel alterar o Iniciar com o Windows.", TrayIcon.MessageType.ERROR);
+            });
+            return null;
+        });
     }
 
     private static MenuItem criarSair(SystemTray tray) {
